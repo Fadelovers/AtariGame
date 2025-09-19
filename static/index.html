@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Space Invaders ASCII — Go server + HTML client</title>
+  <style>
+    body { background: #000; color: #bfffbf; font-family: monospace; }
+    pre { font-size: 14px; line-height: 14px; }
+    #hud { margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h3>Space Invaders (ASCII)</h3>
+  <pre id="screen">Connecting...</pre>
+  <div id="hud">Use ← → or A/D to move, Space to shoot. Click on page to focus.</div>
+
+  <script>
+    const screen = document.getElementById("screen");
+    const W = 40, H = 20;
+
+    const ws = new WebSocket((location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws");
+    ws.onopen = () => screen.innerText = "Connected — loading...";
+    ws.onclose = () => screen.innerText = "Disconnected";
+    ws.onerror = (e) => console.error(e);
+
+    let keys = {left:false, right:false, shoot:false};
+
+    // send key state whenever it changes
+    function sendKeys() {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(keys));
+      }
+    }
+
+    window.addEventListener("keydown", (e) => {
+      if (["ArrowLeft","a","A"].includes(e.key)) { keys.left = true; sendKeys(); e.preventDefault(); }
+      if (["ArrowRight","d","D"].includes(e.key)) { keys.right = true; sendKeys(); e.preventDefault(); }
+      if (e.key === " " || e.key === "Spacebar") { keys.shoot = true; sendKeys(); e.preventDefault(); }
+    });
+    window.addEventListener("keyup", (e) => {
+      if (["ArrowLeft","a","A"].includes(e.key)) { keys.left = false; sendKeys(); }
+      if (["ArrowRight","d","D"].includes(e.key)) { keys.right = false; sendKeys(); }
+      if (e.key === " " || e.key === "Spacebar") { keys.shoot = false; sendKeys(); }
+    });
+
+    ws.onmessage = (msg) => {
+      // if server can send plain text gameOver message, handle it
+      try {
+        const parsed = JSON.parse(msg.data);
+        if (parsed.gameOver) {
+          screen.innerText = "GAME OVER";
+          return;
+        }
+        render(parsed);
+      } catch (e) {
+        // ignore parse error
+      }
+    };
+
+    function render(state) {
+      const buf = Array.from({length: H}, () => Array.from({length: W}, () => " "));
+      // invaders
+      if (state.invaders) {
+        for (const p of state.invaders) {
+          const x = p[0], y = p[1];
+          if (y >= 0 && y < H && x >= 0 && x < W) buf[y][x] = "M";
+        }
+      }
+      // bullets
+      if (state.bullets) {
+        for (const p of state.bullets) {
+          const x = p[0], y = p[1];
+          if (y >= 0 && y < H && x >= 0 && x < W) buf[y][x] = "|";
+        }
+      }
+      // player
+      if (typeof state.playerX === "number" && typeof state.playerY === "number") {
+        if (state.playerY >= 0 && state.playerY < H && state.playerX >= 0 && state.playerX < W) {
+          buf[state.playerY][state.playerX] = "A";
+        }
+      }
+
+      let out = buf.map(r => r.join("")).join("\n");
+      out += "\nScore: " + (state.score || 0) + "   Lives: " + (state.lives || 0);
+      screen.innerText = out;
+    }
+  </script>
+</body>
+</html>
