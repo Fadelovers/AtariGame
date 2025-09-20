@@ -62,8 +62,7 @@ Use ← → or A/D to move, Space to shoot. Click on page to focus
 
 OOP is used in this code to implement the web interface.
 
-```go
-```
+
 ```go
 type Input struct {
     Left  bool `json:"left"`
