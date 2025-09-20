@@ -11,39 +11,39 @@ import (
 )
 
 const (
-	// Поле
+	// Field
 	W = 40
 	H = 20
 
-	// Таймер / скорость
-	TickMs = 80 // миллисекунд между тиками
+	// Timer / game speed
+	TickMs = 80 // milliseconds between ticks
 
-	// Сетка захватчиков
-	InvRows   = 3 // количество рядов захватчиков
-	InvStartX = 4 // левый отступ при создании захватчиков
-	InvStepX  = 3 // шаг по X (горизонтальная плотность)
-	InvStartY = 1 // верхняя строка Y
+	// Invaders grid
+	InvRows   = 3 // number of rows of invaders
+	InvStartX = 4 // left offset when spawning invaders
+	InvStepX  = 3 // step by X (horizontal spacing)
+	InvStartY = 1 // first row Y
 	InvEndX   = W - 4
 
-	// Движение захватчиков
-	InvMoveEvery      = 10 // каждый N-ый тик группа захватчиков двигается
-	InvLeftBound  int = 1  // левая граница для движения захватчиков
+	// Invaders movement
+	InvMoveEvery      = 10 // every N-th tick invaders move
+	InvLeftBound  int = 1  // left boundary for invader movement
 	InvRightBound int = W - 2
 
-	// Стрельба захватчиков
-	InvShootChancePercent = 10 // шанс в процентах, что кто-то из живых захватчиков выстрелит в тик
+	// Invaders shooting
+	InvShootChancePercent = 10 // chance in percent each tick that one invader shoots
 
-	// Игрок
+	// Player
 	PlayerStartLives = 3
 	PlayerStartX     = W / 2
 	PlayerStartY     = H - 2
-	PlayerCoolMax    = 6 // тиков между выстрелами игрока
+	PlayerCoolMax    = 6 // ticks between player shots
 
-	// Пули
+	// Bullets
 	PlayerBulletDy  = -1
 	InvaderBulletDy = 1
 
-	// Очки
+	// Scoring
 	ScorePerInvader = 10
 )
 
