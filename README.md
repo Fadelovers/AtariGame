@@ -57,3 +57,69 @@ Use ← → or A/D to move, Space to shoot. Click on page to focus
 
 
 ```
+
+## OOP
+
+OOP is used in this code to implement the web interface.
+
+```go
+```
+```go
+type Input struct {
+    Left  bool `json:"left"`
+    Right bool `json:"right"`
+    Shoot bool `json:"shoot"`
+}
+```
+
+Purpose: a DTO (data transfer object) for input from the client — keys/control state. JSON tags allow json.Unmarshal to parse incoming JSON messages directly into this struct. This is convenient and safe: you have an explicit list of allowed inputs.
+
+```go
+type GameState struct {
+    Width    int      `json:"width"`
+    Height   int      `json:"height"`
+    PlayerX  int      `json:"playerX"`
+    PlayerY  int      `json:"playerY"`
+    Invaders [][2]int `json:"invaders"`
+    Bullets  [][2]int `json:"bullets"`
+    Score    int      `json:"score"`
+    Lives    int      `json:"lives"`
+}
+
+```
+
+Purpose: the structure you serialize and send to the client (via WebSocket). This is a presentation of the game state, simplified and prepared for JSON. Separating the internal state (Game) and GameState lets you avoid exposing unnecessary details and build only the information the frontend needs.
+
+```go
+type Invader struct {
+    X, Y  int
+    Alive bool
+}
+```
+Purpose: a model of a single invader in the internal game state. It stores coordinates and a alive/dead flag. Having the boolean Alive makes it easy to mark an invader as destroyed without removing the element from the slice (removing/inserting is more expensive and complicates indices).
+
+```go
+type Bullet struct {
+    X, Y, Dy   int
+    FromPlayer bool
+}
+```
+
+Purpose: a model of a projectile. Dy is the vertical direction/speed, FromPlayer distinguishes player bullets from invader bullets (for example, to decide what they can hit).
+
+```go
+type Game struct {
+    playerX, playerY int
+    playerCool       int
+    lives            int
+    score            int
+
+    invaders []Invader
+    bullets  []Bullet
+    invDir   int
+    tick     int
+}
+
+```
+
+Purpose: the main internal state of the game + logic (in your code the logic is implemented directly inside wsHandler, but Game accumulates state). This is the game model: it contains all data that changes during the game.
