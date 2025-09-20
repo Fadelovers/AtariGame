@@ -11,8 +11,40 @@ import (
 )
 
 const (
+	// Поле
 	W = 40
 	H = 20
+
+	// Таймер / скорость
+	TickMs = 80 // миллисекунд между тиками
+
+	// Сетка захватчиков
+	InvRows   = 3 // количество рядов захватчиков
+	InvStartX = 4 // левый отступ при создании захватчиков
+	InvStepX  = 3 // шаг по X (горизонтальная плотность)
+	InvStartY = 1 // верхняя строка Y
+	InvEndX   = W - 4
+
+	// Движение захватчиков
+	InvMoveEvery      = 10 // каждый N-ый тик группа захватчиков двигается
+	InvLeftBound  int = 1  // левая граница для движения захватчиков
+	InvRightBound int = W - 2
+
+	// Стрельба захватчиков
+	InvShootChancePercent = 10 // шанс в процентах, что кто-то из живых захватчиков выстрелит в тик
+
+	// Игрок
+	PlayerStartLives = 3
+	PlayerStartX     = W / 2
+	PlayerStartY     = H - 2
+	PlayerCoolMax    = 6 // тиков между выстрелами игрока
+
+	// Пули
+	PlayerBulletDy  = -1
+	InvaderBulletDy = 1
+
+	// Очки
+	ScorePerInvader = 10
 )
 
 type Input struct {
@@ -55,14 +87,15 @@ type Game struct {
 
 func NewGame() *Game {
 	g := &Game{
-		playerX: W / 2,
-		playerY: H - 2,
-		lives:   3,
+		playerX: PlayerStartX,
+		playerY: PlayerStartY,
+		lives:   PlayerStartLives,
 		invDir:  1,
 	}
-	// spawn invaders grid
-	for y := 1; y <= 3; y++ {
-		for x := 4; x < W-4; x += 3 {
+
+	// spawn invaders grid, используем константы InvRows, InvStartX, InvStepX
+	for y := InvStartY; y <= InvStartY+InvRows-1; y++ {
+		for x := InvStartX; x < InvEndX; x += InvStepX {
 			g.invaders = append(g.invaders, Invader{X: x, Y: y, Alive: true})
 		}
 	}
@@ -84,7 +117,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	game := NewGame()
 	inputCh := make(chan Input, 16)
 
-	// reader goroutine: receives input JSONs from client
+	// reader goroutine: получает входные JSON от клиента
 	go func() {
 		for {
 			_, msg, err := conn.ReadMessage()
@@ -105,7 +138,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	ticker := time.NewTicker(80 * time.Millisecond)
+	ticker := time.NewTicker(time.Duration(TickMs) * time.Millisecond)
 	defer ticker.Stop()
 
 	var currInput Input
@@ -133,8 +166,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 			game.playerX++
 		}
 		if currInput.Shoot && game.playerCool == 0 {
-			game.bullets = append(game.bullets, Bullet{X: game.playerX, Y: game.playerY - 1, Dy: -1, FromPlayer: true})
-			game.playerCool = 6
+			game.bullets = append(game.bullets, Bullet{X: game.playerX, Y: game.playerY - 1, Dy: PlayerBulletDy, FromPlayer: true})
+			game.playerCool = PlayerCoolMax
 		}
 		if game.playerCool > 0 {
 			game.playerCool--
@@ -143,14 +176,14 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		game.tick++
 
 		// invaders group move occasionally
-		if game.tick%10 == 0 {
+		if game.tick%InvMoveEvery == 0 {
 			edge := false
 			for i := range game.invaders {
 				if !game.invaders[i].Alive {
 					continue
 				}
 				nx := game.invaders[i].X + game.invDir
-				if nx < 1 || nx > W-2 {
+				if nx < InvLeftBound || nx > InvRightBound {
 					edge = true
 					break
 				}
@@ -184,7 +217,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 					iv := &game.invaders[i]
 					if iv.Alive && iv.X == b.X && iv.Y == b.Y {
 						iv.Alive = false
-						game.score += 10
+						game.score += ScorePerInvader
 						hit = true
 						break
 					}
@@ -202,8 +235,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		game.bullets = newBul
 
-		// invaders shoot randomly
-		if rand.Intn(100) < 10 {
+		// invaders shoot randomly (шанс задаётся через константу)
+		if rand.Intn(100) < InvShootChancePercent {
 			alive := []Invader{}
 			for _, iv := range game.invaders {
 				if iv.Alive {
@@ -212,7 +245,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			if len(alive) > 0 {
 				iv := alive[rand.Intn(len(alive))]
-				game.bullets = append(game.bullets, Bullet{X: iv.X, Y: iv.Y + 1, Dy: 1, FromPlayer: false})
+				game.bullets = append(game.bullets, Bullet{X: iv.X, Y: iv.Y + 1, Dy: InvaderBulletDy, FromPlayer: false})
 			}
 		}
 
