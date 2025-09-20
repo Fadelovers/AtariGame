@@ -9,6 +9,12 @@ Space Invaders is a two-dimensional fixed shooter game in which the player contr
 
 ![Image](https://github.com/user-attachments/assets/b6b17595-f701-4875-8c5f-16e40a117288)
 
+## link
+
+https://github.com/Fadelovers/AtariGame/releases/tag/Game
+
+https://github.com/Fadelovers/AtariGame/releases/tag/Code
+
 ## How To Play
 
 compile the project and run it on localhost
